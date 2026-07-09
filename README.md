@@ -8,3 +8,8 @@ The comparative genomics analyses were split across the ortho-process.py file (p
 The American Pika code was split between the climate_change.py file (searching for lactate dehydrogenase SNPs) and the aging.py file ('aging' the lineages by the presence/absence of SNPs). 
 
 The Bank Vole code was located within the Bank-Vole.py file. 
+
+# Supplementary Data:
+1. The 5 LDH orthologs are presented in unaligned fa files (starting with N0 or N1 and isotype/ ortholog name at end).
+
+2. The three main isotypes in assembled fa files (aligned from MACSE - LDH(isotype)_CDS_NT.fa). 
