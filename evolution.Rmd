@@ -1,0 +1,129 @@
+library(ggplot2)
+library(ggprism)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(phytools)
+library(ape)
+library(caper)
+
+data<- read.csv("C:/Users/tsto3616/pangolin/evolution/isotypes_counts.csv")
+
+data
+
+data_long<- data %>% pivot_longer(!Species, names_to = "LDH", values_to = "Count")
+
+data_long
+
+plot<- ggplot(data_long, aes(x = Species, y = Count, fill = LDH)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+
+  # vertical separator lines between species
+  geom_vline(xintercept = seq_along(unique(data_long$Species)) - 0.5,
+             color = "grey70", linewidth = 0.3) +
+
+  scale_fill_prism(palette = "floral") +
+
+  # y-axis ticks every 1, but no numbers
+  scale_y_continuous(
+    breaks = seq(0, max(data_long$Count), by = 1),
+    labels = rep("", length(seq(0, max(data_long$Count), by = 1)))
+  ) +
+
+  theme_prism(base_size = 14) +
+  labs(
+    title = "LDH Paralog Counts per Species",
+    x = "Species",
+    y = "LDH Count"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "right"
+  )
+
+plot
+
+ggsave("C:/Users/tsto3616/pangolin/evolution/LDH_count.svg")
+
+# now for the dn/ds
+data<- read.csv("C:/Users/tsto3616/pangolin/evolution/LDHD_mean_dnds.csv")
+
+data
+plot <- ggplot(data, aes(x = Name, y = Mean_dN_dS)) +
+  geom_col(fill = "steelblue") +
+
+  # y-axis ticks every 1, WITH numbers
+  scale_y_continuous(
+    breaks = seq(0, ceiling(max(data$Mean_dN_dS)), by = 10)
+  ) +
+
+  theme_prism(base_size = 14) +
+  labs(
+    title = "Mean LDH dN/dS per Species",
+    x = "Species",
+    y = "Mean dN/dS"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1),
+    legend.position = "right"
+  )
+
+plot
+
+ggsave("C:/Users/tsto3616/pangolin/evolution/LDHD_dN_dS.svg")
+
+# now for the dating of the dN/dS
+data<- read.csv("C:/Users/tsto3616/pangolin/evolution/LDHD_mean_dnds.csv")
+
+omega <- setNames(data$Mean_dN_dS, data$Species)
+
+tree <- read.nexus("C:/Users/tsto3616/pangolin/evolution/dated_tree.nex")
+
+tree <- tree[[1]]
+
+tree <- root(tree, outgroup = "Ornithorhynchus_anatinus", resolve.root = TRUE)
+
+is.rooted(tree)
+
+tree <- multi2di(tree)
+
+is.binary(tree)
+
+tree$tip.label
+data$Species
+
+data <- data[match(tree$tip.label, data$Species), ]
+
+data
+
+# total tree height (root age)
+tree_height <- max(node.depth.edgelength(tree))
+
+# compute tip ages
+tip_ages <- tree_height - node.depth.edgelength(tree)[1:Ntip(tree)]
+
+# name the vector by species
+TipAge <- setNames(tip_ages, tree$tip.label)
+
+data$TipAge <- TipAge[data$Species]
+
+head(data)
+
+comp <- comparative.data(tree, data, names.col = "Species")
+pgls(Mean_dN_dS ~ TipAge, data = comp)
+
+data_recent <- subset(data, TipAge <= 50)
+
+# Toggle etween data_recent and data to see different distances of evolutionary time for context
+ggplot(data_recent, aes(x = TipAge, y = Mean_dN_dS, colour = Name)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "LDH Evolution vs Mammalian Tip Age (Last 1 MYR)",
+    x = "Tip Age (Myr)",
+    y = "Mean dN/dS"
+  )
+
+
+
